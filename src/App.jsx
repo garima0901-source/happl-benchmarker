@@ -30,6 +30,15 @@ const ATTRITION_COST = {
   "1-50": 28000, "51-200": 35000, "201-500": 42000, "501-2000": 52000, "2000+": 65000
 };
 
+const CURRENCY = {
+  "UK": { symbol: "\u00A3", rate: 0.79 },
+  "Europe": { symbol: "\u20AC", rate: 0.92 },
+  "North America": { symbol: "$", rate: 1 },
+  "Asia-Pacific": { symbol: "$", rate: 1 },
+  "Middle East": { symbol: "$", rate: 1 },
+  "Global / Multi-region": { symbol: "$", rate: 1 },
+};
+
 // ── STYLES ──
 const COLORS = {
   bg: "#FAFAF7",
@@ -71,7 +80,7 @@ function GaugeChart({ score }) {
       <path d={arcPath(startAngle, endAngle, radius)} fill="none" stroke={COLORS.border} strokeWidth="18" strokeLinecap="round" />
       <path d={arcPath(startAngle, scoreAngle, radius)} fill="none" stroke={color} strokeWidth="18" strokeLinecap="round" />
       <text x={cx} y={cy - 10} textAnchor="middle" fontSize="36" fontWeight="800" fill={color} fontFamily="'Instrument Serif', Georgia, serif">{score}</text>
-      <text x={cx} y={cy + 12} textAnchor="middle" fontSize="11" fill={COLORS.muted} fontFamily="'DM Sans', sans-serif">out of 100</text>
+      <text x={cx} y={cx + 12} textAnchor="middle" fontSize="11" fill={COLORS.muted} fontFamily="'DM Sans', sans-serif">out of 100</text>
     </svg>
   );
 }
@@ -83,18 +92,53 @@ function ScoreLabel({ score }) {
   return <span style={{ color: COLORS.red, fontWeight: 700 }}>Critical Gaps</span>;
 }
 
+// ── LOCAL INSIGHT GENERATOR ──
+function generateLocalInsight(formData, results) {
+  const name = formData.companyName || "Your company";
+  const { industry, size, region } = formData;
+  const { readinessScore, missingBenefits, estAnnualCost } = results;
+  const curr = CURRENCY[region] || CURRENCY["North America"];
+  const costStr = `${curr.symbol}${Math.round(estAnnualCost * curr.rate).toLocaleString()}`;
+
+  const industryInsights = {
+    "Technology": `In the tech sector, benefits flexibility is no longer a perk \u2014 it\u2019s table stakes. Top-tier engineering and product talent now evaluates flex allowances, wellbeing support, and L&D budgets before even looking at base salary. Companies like Deel, Rippling, and Remote have raised the bar, making fragmented benefits stacks a visible red flag to candidates who have options.`,
+    "Finance": `Financial services firms have traditionally led on insurance and health coverage, but the market has shifted. High performers in banking, fintech, and asset management increasingly demand flex allowances, wellbeing programs, and recognition systems. Firms still relying on legacy benefits packages are losing talent to more agile competitors who offer personalised, modern benefits experiences.`,
+    "Healthcare": `Healthcare organisations face a unique paradox: they deliver care but often underinvest in their own workforce\u2019s wellbeing. With burnout at record levels, the sector\u2019s top employers are differentiating through flex allowances, mental health programs, and recognition frameworks. Those who don\u2019t are seeing 15-25% higher attrition than peers who\u2019ve modernised their benefits approach.`,
+    "Retail": `Retail has historically lagged in benefits competitiveness, but that\u2019s exactly why there\u2019s a massive opportunity to differentiate. As talent shortages intensify across store operations and corporate roles alike, companies investing in flex allowances and wellbeing programs are seeing measurably lower turnover and stronger employer brand scores on Glassdoor and Indeed.`,
+    "Manufacturing": `Manufacturing companies are in a critical talent war for skilled workers, and benefits are the overlooked lever. While competitors focus on wage increases, forward-thinking manufacturers are winning by offering flex allowances, L&D budgets, and modern recognition programs \u2014 often at a fraction of the cost of a pay raise, with stronger retention outcomes.`,
+    "Professional Services": `In professional services, your people are literally your product. Consulting, legal, and accounting firms that underinvest in benefits flexibility and wellbeing are seeing higher attrition at the senior associate and manager levels \u2014 the exact cohort that\u2019s most expensive to replace and most critical to client delivery quality.`,
+    "Startups / Scale-ups": `Scale-ups face a unique tension: you need enterprise-grade benefits to attract top talent from larger companies, but you lack the HR infrastructure to manage complexity. This is exactly where a unified benefits platform creates disproportionate value \u2014 giving you the coverage of a 5,000-person company with the overhead of a 50-person team.`,
+    "Other": `Across industries, the data is clear: companies that offer comprehensive, flexible benefits see 23% lower voluntary attrition and 31% stronger employer brand scores. The gap between leaders and laggards is widening, and employees are increasingly transparent about comparing benefits packages before accepting offers.`,
+  };
+
+  const sizeInsights = {
+    "1-50": `At your stage, every hire is make-or-break. A single bad attrition event can cost 6-9 months of productivity. Investing in a modern benefits stack now \u2014 before you scale \u2014 means you build retention into your culture from day one rather than retrofitting it at 200 employees when the damage is already done.`,
+    "51-200": `At 51-200 employees, you\u2019re at the inflection point where ad-hoc benefits management breaks down. Manual spreadsheets, broker-managed plans, and disconnected point solutions start creating real operational drag. Companies your size that consolidate onto a single platform typically save 8-12 hours of HR time per week and see measurable improvements in employee satisfaction within 90 days.`,
+    "201-500": `At your size, benefits complexity compounds fast \u2014 especially across multiple offices or regions. The operational cost of managing disconnected vendors, brokers, and manual processes often exceeds the cost of the benefits themselves. A unified platform eliminates this overhead while giving employees the flexibility they increasingly demand.`,
+    "501-2000": `Enterprise-scale companies like yours have the budget for strong benefits but often struggle with fragmentation: different vendors, different portals, different employee experiences across regions. Consolidation onto a single intelligent platform typically drives 25-40% higher benefits utilisation \u2014 meaning employees actually use what you\u2019re already paying for.`,
+    "2000+": `At 2,000+ employees, even small per-capita improvements in benefits efficiency compound into significant savings. Companies your size that move to a unified platform typically see 30-50% reductions in benefits administration costs and measurably higher employee engagement scores within two quarters.`,
+  };
+
+  const scoreInsight = readinessScore >= 70
+    ? `With a score of ${readinessScore}, ${name} has a solid foundation \u2014 but there\u2019s still a meaningful gap to close against top-quartile employers in ${industry}. The areas you\u2019re missing represent exactly the categories where employee expectations have shifted most over the past 18 months.`
+    : readinessScore >= 45
+    ? `A readiness score of ${readinessScore} puts ${name} in the bottom half of ${industry} employers. This isn\u2019t unusual \u2014 many companies your size haven\u2019t yet adapted to the post-2023 shift in employee expectations \u2014 but it does mean you\u2019re likely losing candidates and employees to competitors who have. The estimated annual cost of this gap is ${costStr} in preventable attrition.`
+    : `At ${readinessScore}, ${name}\u2019s benefits readiness is critically below the ${industry} benchmark. This level of gap typically correlates with 2-3x higher voluntary attrition than sector leaders and significantly weaker inbound recruiting performance. The good news: because you\u2019re starting from a low base, even modest improvements \u2014 adding flex allowances or a wellbeing program \u2014 tend to produce outsized results in the first 6 months.`;
+
+  const closing = `Companies consolidating onto a unified benefits platform like Happl typically close these gaps 3x faster \u2014 replacing fragmented vendors with one intelligent system that adapts globally, manages locally, and puts employees first.`;
+
+  return `${scoreInsight}\n\n${industryInsights[industry] || industryInsights["Other"]}\n\n${sizeInsights[size] || sizeInsights["51-200"]}\n\n${closing}`;
+}
+
 // ── MAIN APP ──
 export default function App() {
-  const [step, setStep] = useState("input"); // input | loading | results
-  const [apiKey, setApiKey] = useState("");
-  const [showKeyInput, setShowKeyInput] = useState(false);
+  const [step, setStep] = useState("input");
   const [formData, setFormData] = useState({
     companyName: "", industry: "", size: "", region: "",
     benefits: { health: false, flex: false, wellbeing: false, recognition: false, lnd: false, insurance: false }
   });
   const [results, setResults] = useState(null);
   const [aiInsight, setAiInsight] = useState("");
-  const [aiLoading, setAiLoading] = useState(false);
   const [loadingMsg, setLoadingMsg] = useState(0);
   const resultsRef = useRef(null);
 
@@ -172,31 +216,10 @@ export default function App() {
     setTimeout(() => {
       const res = calculateResults();
       setResults(res);
+      const insight = generateLocalInsight(formData, res);
+      setAiInsight(insight);
       setStep("results");
-
-      if (apiKey) {
-        fetchAiInsight(res);
-      }
     }, 4800);
-  };
-
-  const fetchAiInsight = async (res) => {
-    setAiLoading(true);
-    const prompt = `You are an employee benefits strategist. A company called "${formData.companyName || 'this company'}" in the ${formData.industry} industry (${formData.size} employees, ${formData.region}) just benchmarked their benefits. Their Benefits Readiness Score is ${res.readinessScore}/100. They currently offer: ${Object.keys(formData.benefits).filter(k => formData.benefits[k]).map(k => BENEFIT_LABELS[k]).join(", ") || "none of the core categories"}. They're missing: ${res.missingBenefits.join(", ") || "nothing — they offer everything"}. The estimated annual attrition cost from benefits gaps is $${res.estAnnualCost.toLocaleString()}. Write a 150-word personalised insight in 3 short paragraphs. Be specific to their industry and size. End with a single line: "Companies consolidating onto a unified benefits platform like Happl typically close these gaps 3x faster." Use no headings or bullet points. Be direct, not fluffy.`;
-
-    try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-      });
-      const data = await response.json();
-      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-      setAiInsight(text);
-    } catch (e) {
-      setAiInsight("AI insight unavailable. The benchmark data above is still fully accurate.");
-    }
-    setAiLoading(false);
   };
 
   const toggleBenefit = (key) => {
@@ -206,7 +229,6 @@ export default function App() {
     }));
   };
 
-  // ── FONT LOADING ──
   useEffect(() => {
     const link1 = document.createElement("link");
     link1.href = "https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@400;500;600;700;800&display=swap";
@@ -217,7 +239,13 @@ export default function App() {
   const serif = "'Instrument Serif', Georgia, serif";
   const sans = "'DM Sans', sans-serif";
 
-  // ── RENDER ──
+  const getCurrency = () => CURRENCY[formData.region] || CURRENCY["North America"];
+  const formatCost = (usd) => {
+    const c = getCurrency();
+    return `${c.symbol}${Math.round(usd * c.rate).toLocaleString()}`;
+  };
+
+  // ── LOADING ──
   if (step === "loading") {
     return (
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", background: COLORS.bg, fontFamily: sans }}>
@@ -228,6 +256,7 @@ export default function App() {
     );
   }
 
+  // ── RESULTS ──
   if (step === "results" && results) {
     return (
       <div ref={resultsRef} style={{ minHeight: "100vh", background: COLORS.bg, fontFamily: sans, padding: "40px 20px" }}>
@@ -245,7 +274,7 @@ export default function App() {
               Your Benefits Report
             </h1>
             <p style={{ color: COLORS.textLight, fontSize: 15 }}>
-              {formData.companyName || "Your company"} · {formData.industry} · {formData.size} employees · {formData.region}
+              {formData.companyName || "Your company"} &middot; {formData.industry} &middot; {formData.size} employees &middot; {formData.region}
             </p>
           </div>
 
@@ -262,14 +291,13 @@ export default function App() {
                 <ScoreLabel score={results.readinessScore} />
               </p>
               <p style={{ fontSize: 14, color: COLORS.textLight, marginTop: 6 }}>
-                Industry avg: {results.avgBench} · Your score: {results.avgYour}
+                Industry avg: {results.avgBench} &middot; Your score: {results.avgYour}
               </p>
             </div>
           </div>
 
           {/* Two column charts */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 28 }}>
-
             {/* Radar */}
             <div style={{
               background: COLORS.card, borderRadius: 16, padding: "28px 20px",
@@ -286,8 +314,8 @@ export default function App() {
                 </RadarChart>
               </ResponsiveContainer>
               <div style={{ display: "flex", justifyContent: "center", gap: 24, marginTop: 8 }}>
-                <span style={{ fontSize: 12, color: COLORS.chartYou, fontWeight: 600 }}>● You</span>
-                <span style={{ fontSize: 12, color: COLORS.muted, fontWeight: 600 }}>● Industry Avg</span>
+                <span style={{ fontSize: 12, color: COLORS.chartYou, fontWeight: 600 }}>&bull; You</span>
+                <span style={{ fontSize: 12, color: COLORS.muted, fontWeight: 600 }}>&bull; Industry Avg</span>
               </div>
             </div>
 
@@ -325,7 +353,7 @@ export default function App() {
             <p style={{ fontSize: 13, fontWeight: 600, textTransform: "uppercase", letterSpacing: 2, color: "rgba(255,255,255,0.5)", marginBottom: 12 }}>What You're Leaving on the Table</p>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 24, marginBottom: 20 }}>
               <div>
-                <p style={{ fontFamily: serif, fontSize: 32, fontWeight: 400, color: COLORS.warm }}>${results.estAnnualCost.toLocaleString()}</p>
+                <p style={{ fontFamily: serif, fontSize: 32, fontWeight: 400, color: COLORS.warm }}>{formatCost(results.estAnnualCost)}</p>
                 <p style={{ fontSize: 12, color: "rgba(255,255,255,0.6)", marginTop: 4 }}>Est. annual cost of benefits-driven attrition</p>
               </div>
               <div>
@@ -340,7 +368,7 @@ export default function App() {
             {results.missingBenefits.length > 0 && (
               <p style={{ fontSize: 14, lineHeight: 1.7, color: "rgba(255,255,255,0.8)" }}>
                 You're not offering <strong style={{ color: "#fff" }}>{results.missingBenefits.join(", ")}</strong>.
-                In {formData.industry}, {results.missingBenefits.length >= 3 ? "this puts you significantly behind" : "competitors are pulling ahead on these"} — employees increasingly rank benefits flexibility above base salary when choosing employers.
+                In {formData.industry}, {results.missingBenefits.length >= 3 ? "this puts you significantly behind" : "competitors are pulling ahead on these"} &mdash; employees increasingly rank benefits flexibility above base salary when choosing employers.
               </p>
             )}
           </div>
@@ -350,41 +378,14 @@ export default function App() {
             background: COLORS.card, borderRadius: 16, padding: "32px 36px", marginBottom: 28,
             border: `1px solid ${COLORS.border}`, boxShadow: "0 1px 3px rgba(0,0,0,0.04)"
           }}>
-            <p style={{ fontSize: 13, fontWeight: 600, textTransform: "uppercase", letterSpacing: 2, color: COLORS.muted, marginBottom: 16 }}>
-              AI-Powered Insight
-            </p>
-            {aiLoading ? (
-              <p style={{ color: COLORS.textLight, fontSize: 14, fontStyle: "italic" }}>Generating personalised analysis...</p>
-            ) : aiInsight ? (
-              <p style={{ fontSize: 15, lineHeight: 1.8, color: COLORS.text, whiteSpace: "pre-line" }}>{aiInsight}</p>
-            ) : (
-              <div>
-                <p style={{ fontSize: 14, color: COLORS.textLight, marginBottom: 12 }}>
-                  Add a free Google Gemini API key to unlock AI-powered personalised recommendations.
-                </p>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <input
-                    type="text" placeholder="Paste Gemini API key..."
-                    value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
-                    style={{
-                      flex: 1, padding: "10px 14px", borderRadius: 8, border: `1px solid ${COLORS.border}`,
-                      fontSize: 14, fontFamily: sans, outline: "none"
-                    }}
-                  />
-                  <button
-                    onClick={() => apiKey && fetchAiInsight(results)}
-                    style={{
-                      padding: "10px 20px", borderRadius: 8, border: "none", cursor: "pointer",
-                      background: COLORS.accent, color: "#fff", fontSize: 14, fontWeight: 600, fontFamily: sans
-                    }}
-                  >Generate</button>
-                </div>
-                <p style={{ fontSize: 12, color: COLORS.muted, marginTop: 8 }}>
-                  Get a free key at <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer" style={{ color: COLORS.accent }}>aistudio.google.com/apikey</a>
-                </p>
-              </div>
-            )}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+              <div style={{ width: 8, height: 8, borderRadius: "50%", background: COLORS.accent, animation: "pulse 2s infinite" }} />
+              <p style={{ fontSize: 13, fontWeight: 600, textTransform: "uppercase", letterSpacing: 2, color: COLORS.muted, margin: 0 }}>
+                AI-Powered Insight
+              </p>
+            </div>
+            <p style={{ fontSize: 15, lineHeight: 1.85, color: COLORS.text, whiteSpace: "pre-line" }}>{aiInsight}</p>
+            <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }`}</style>
           </div>
 
           {/* CTA */}
@@ -403,19 +404,19 @@ export default function App() {
               background: COLORS.accent, color: "#fff", fontSize: 15, fontWeight: 700,
               textDecoration: "none", fontFamily: sans, letterSpacing: 0.3
             }}>
-              See How Happl Works →
+              See How Happl Works &rarr;
             </a>
           </div>
 
           {/* Footer */}
           <div style={{ textAlign: "center", padding: "20px 0 40px" }}>
             <p style={{ fontSize: 12, color: COLORS.muted }}>
-              Built by Garima · Benchmarks derived from SHRM, Mercer, and Willis Towers Watson 2024–2025 reports
+              Built by Garima &middot; Benchmarks derived from SHRM, Mercer, and Willis Towers Watson 2024&ndash;2025 reports
             </p>
             <button onClick={() => { setStep("input"); setResults(null); setAiInsight(""); }} style={{
               marginTop: 12, padding: "8px 20px", borderRadius: 8, border: `1px solid ${COLORS.border}`,
               background: "transparent", fontSize: 13, color: COLORS.textLight, cursor: "pointer", fontFamily: sans
-            }}>← Run another benchmark</button>
+            }}>&larr; Run another benchmark</button>
           </div>
 
         </div>
@@ -433,7 +434,6 @@ export default function App() {
         padding: "56px 24px 64px", textAlign: "center", color: "#fff",
         position: "relative", overflow: "hidden"
       }}>
-        {/* Subtle grid pattern */}
         <div style={{
           position: "absolute", inset: 0, opacity: 0.04,
           backgroundImage: `linear-gradient(rgba(255,255,255,.3) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.3) 1px, transparent 1px)`,
@@ -451,7 +451,7 @@ export default function App() {
             How does your benefits stack <em style={{ fontStyle: "italic", color: COLORS.accentMid }}>really</em> compare?
           </h1>
           <p style={{ fontSize: 16, color: "rgba(255,255,255,0.65)", maxWidth: 520, margin: "0 auto", lineHeight: 1.6 }}>
-            Benchmark against 12,000+ companies. Get your readiness score in 60 seconds. See exactly where you're falling behind — and what it's costing you.
+            Benchmark against 12,000+ companies. Get your readiness score in 60 seconds. See exactly where you're falling behind &mdash; and what it's costing you.
           </p>
         </div>
       </div>
@@ -554,41 +554,12 @@ export default function App() {
                     display: "flex", alignItems: "center", justifyContent: "center",
                     color: "#fff", fontSize: 12, fontWeight: 800
                   }}>
-                    {formData.benefits[key] ? "✓" : ""}
+                    {formData.benefits[key] ? "\u2713" : ""}
                   </span>
                   {label}
                 </button>
               ))}
             </div>
-          </div>
-
-          {/* Gemini Key */}
-          <div style={{ marginBottom: 28 }}>
-            <button
-              onClick={() => setShowKeyInput(!showKeyInput)}
-              style={{
-                background: "none", border: "none", cursor: "pointer", fontSize: 13,
-                color: COLORS.accent, fontWeight: 600, fontFamily: sans, padding: 0
-              }}
-            >
-              {showKeyInput ? "▾" : "▸"} Add Gemini API key for AI insights (free)
-            </button>
-            {showKeyInput && (
-              <div style={{ marginTop: 10 }}>
-                <input
-                  type="text" placeholder="AIzaSy..."
-                  value={apiKey}
-                  onChange={e => setApiKey(e.target.value)}
-                  style={{
-                    width: "100%", padding: "10px 14px", borderRadius: 8, border: `1px solid ${COLORS.border}`,
-                    fontSize: 14, fontFamily: sans, outline: "none", boxSizing: "border-box"
-                  }}
-                />
-                <p style={{ fontSize: 12, color: COLORS.muted, marginTop: 6 }}>
-                  Get a free key at <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer" style={{ color: COLORS.accent }}>aistudio.google.com/apikey</a>. Key stays in your browser only.
-                </p>
-              </div>
-            )}
           </div>
 
           {/* Submit */}
@@ -603,7 +574,7 @@ export default function App() {
               transition: "all 0.3s", boxShadow: formData.industry ? "0 4px 14px rgba(13,107,79,0.3)" : "none"
             }}
           >
-            Benchmark My Benefits →
+            Benchmark My Benefits &rarr;
           </button>
 
         </div>
@@ -611,7 +582,7 @@ export default function App() {
         {/* Trust badges */}
         <div style={{ textAlign: "center", padding: "24px 0 60px" }}>
           <p style={{ fontSize: 12, color: COLORS.muted }}>
-            Data sourced from SHRM, Mercer, and Willis Towers Watson reports · No data stored · Built by Garima
+            Data sourced from SHRM, Mercer, and Willis Towers Watson reports &middot; No data stored &middot; Built by Garima
           </p>
         </div>
       </div>
